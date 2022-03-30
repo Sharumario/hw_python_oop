@@ -37,6 +37,7 @@ class Training:
     weight: float
     M_IN_KM: ClassVar = 1000
     M_IN_HOUR: ClassVar = 60
+    LEN_STEP: ClassVar = 0.65
 
     def get_distance(self) -> float:
         """Получить дистанцию в км."""
@@ -65,7 +66,6 @@ class Running(Training):
     """Тренировка: бег."""
     SPEED_MULTIPLIER: ClassVar = 18
     SPEED_SHIFT: ClassVar = 20
-    LEN_STEP: ClassVar = 0.65
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий (бег)."""
@@ -87,7 +87,6 @@ class SportsWalking(Training):
     height: float
     WEIGHT_MULTIPLIER_1: ClassVar = 0.035
     WEIGHT_MULTIPLIER_2: ClassVar = 0.029
-    LEN_STEP: ClassVar = 0.65
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий (спортивная ходьба)."""
