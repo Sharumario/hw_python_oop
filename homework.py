@@ -1,4 +1,4 @@
-from dataclasses import dataclass, astuple
+from dataclasses import dataclass, astuple, fields
 
 
 @dataclass
@@ -9,7 +9,7 @@ class InfoMessage:
     distance: float
     speed: float
     calories: float
-    MESSAGE: str = (
+    MESSAGE = (
         'Тип тренировки: {}; '
         'Длительность: {:.3f} ч.; '
         'Дистанция: {:.3f} км; '
@@ -47,7 +47,7 @@ class Training:
     def show_training_info(self) -> InfoMessage:
         """Вернуть информационное сообщение о выполненной тренировке."""
         return InfoMessage(
-            self.__class__.__name__,
+            str(type(self))[17:-2],
             self.duration, self.get_distance(),
             self.get_mean_speed(),
             self.get_spent_calories()
@@ -88,11 +88,14 @@ class SportsWalking(Training):
                 self.WEIGHT_MULTIPLIER_1
                 * self.weight
                 + (self.get_mean_speed() ** 2
-                   // self.height)
+                    // self.height
+                   )
                 * self.WEIGHT_MULTIPLIER_2
                 * self.weight
             )
-            * (self.M_IN_HOUR * self.duration)
+            * (self.M_IN_HOUR
+               * self.duration
+               )
         )
 
 
@@ -117,46 +120,41 @@ class Swimming(Training):
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий (плавание)."""
         return (
-            (self.get_mean_speed()
-             + self.SPEED_SHIFT)
+            (
+                self.get_mean_speed()
+                + self.SPEED_SHIFT
+            )
             * self.SPEED_MULTIPLIER
             * self.weight
         )
 
 
 TRAININGS = {
-    'SWM': [Swimming, 5],
-    'RUN': [Running, 3],
-    'WLK': [SportsWalking, 4]
+    'SWM': Swimming,
+    'RUN': Running,
+    'WLK': SportsWalking,
 }
 KEY_ERROR_MESSAGE = (
-    'Введёно не корректное имя класса: "{}". '
-    'Корректные имена "SWM", "RUN", "WLK"'
+    'Получено не корректное имя класса: "{}". '
 )
 TYPE_ERROR_MESSAGE = (
-    'Длинна аргументов класса "{}" не соотвествует необходимой длине. '
-    'У вас {}. А надо {}.'
+    'Количество аргументов класса {} не корректно. '
+    'Получено {} аргумента. Ожидалось {} аргумента.'
 )
 
 
 def read_package(workout_type: str, data: list) -> Training:
     """Прочитать данные полученные от датчиков."""
-    try:
-        if workout_type not in TRAININGS:
-            raise KeyError
-    except KeyError:
-        print(KEY_ERROR_MESSAGE.format(workout_type))
-        exit(0)
-    try:
-        if len(data) != TRAININGS[workout_type][1]:
-            raise TypeError
-    except TypeError:
-        print(TYPE_ERROR_MESSAGE.format(workout_type,
-                                        len(data),
-                                        TRAININGS[workout_type][1])
-              )
-        exit(0)
-    return TRAININGS[workout_type][0](*data)
+    if workout_type not in TRAININGS:
+        raise ValueError(KEY_ERROR_MESSAGE.format(workout_type))
+    if len(data) != len(fields(TRAININGS[workout_type])):
+        raise (TypeError(
+            TYPE_ERROR_MESSAGE.format(
+                workout_type,
+                len(data),
+                len(fields(TRAININGS[workout_type]))))
+               )
+    return TRAININGS[workout_type](*data)
 
 
 def main(training: Training) -> None:
