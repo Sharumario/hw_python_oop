@@ -1,5 +1,4 @@
-from dataclasses import dataclass, fields
-from typing import ClassVar
+from dataclasses import dataclass, astuple
 
 
 @dataclass
@@ -10,7 +9,7 @@ class InfoMessage:
     distance: float
     speed: float
     calories: float
-    GET_MESSAGE: str = (
+    MESSAGE: str = (
         'Тип тренировки: {}; '
         'Длительность: {:.3f} ч.; '
         'Дистанция: {:.3f} км; '
@@ -20,13 +19,7 @@ class InfoMessage:
 
     def get_message(self) -> str:
         """Вывод информационного сообщение о выполненной тренировке."""
-        return self.GET_MESSAGE.format(
-            self.training_type,
-            self.duration,
-            self.distance,
-            self.speed,
-            self.calories
-        )
+        return self.MESSAGE.format(*astuple(self))
 
 
 @dataclass
@@ -35,9 +28,9 @@ class Training:
     action: int
     duration: float
     weight: float
-    M_IN_KM: ClassVar = 1000
-    M_IN_HOUR: ClassVar = 60
-    LEN_STEP: ClassVar = 0.65
+    M_IN_KM = 1000
+    M_IN_HOUR = 60
+    LEN_STEP = 0.65
 
     def get_distance(self) -> float:
         """Получить дистанцию в км."""
@@ -64,8 +57,8 @@ class Training:
 @dataclass
 class Running(Training):
     """Тренировка: бег."""
-    SPEED_MULTIPLIER: ClassVar = 18
-    SPEED_SHIFT: ClassVar = 20
+    SPEED_MULTIPLIER = 18
+    SPEED_SHIFT = 20
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий (бег)."""
@@ -85,15 +78,20 @@ class Running(Training):
 class SportsWalking(Training):
     """Тренировка: спортивная ходьба."""
     height: float
-    WEIGHT_MULTIPLIER_1: ClassVar = 0.035
-    WEIGHT_MULTIPLIER_2: ClassVar = 0.029
+    WEIGHT_MULTIPLIER_1 = 0.035
+    WEIGHT_MULTIPLIER_2 = 0.029
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий (спортивная ходьба)."""
         return (
-            (self.WEIGHT_MULTIPLIER_1 * self.weight
-             + (self.get_mean_speed() ** 2 // self.height)
-             * self.WEIGHT_MULTIPLIER_2 * self.weight)
+            (
+                self.WEIGHT_MULTIPLIER_1
+                * self.weight
+                + (self.get_mean_speed() ** 2
+                   // self.height)
+                * self.WEIGHT_MULTIPLIER_2
+                * self.weight
+            )
             * (self.M_IN_HOUR * self.duration)
         )
 
@@ -103,15 +101,17 @@ class Swimming(Training):
     """Тренировка: плавание."""
     length_pool: float
     count_pool: int
-    SPEED_SHIFT: ClassVar = 1.1
-    SPEED_MULTIPLIER: ClassVar = 2
-    LEN_STEP: ClassVar = 1.38
+    SPEED_SHIFT = 1.1
+    SPEED_MULTIPLIER = 2
+    LEN_STEP = 1.38
 
     def get_mean_speed(self) -> float:
         """Получить среднюю скорость движения (плавание)."""
         return (
-            self.length_pool * self.count_pool
-            / self.M_IN_KM / self.duration
+            self.length_pool
+            * self.count_pool
+            / self.M_IN_KM
+            / self.duration
         )
 
     def get_spent_calories(self) -> float:
@@ -119,22 +119,44 @@ class Swimming(Training):
         return (
             (self.get_mean_speed()
              + self.SPEED_SHIFT)
-            * self.SPEED_MULTIPLIER * self.weight
+            * self.SPEED_MULTIPLIER
+            * self.weight
         )
 
 
-TRAININGS = {'SWM': Swimming, 'RUN': Running, 'WLK': SportsWalking}
+TRAININGS = {
+    'SWM': [Swimming, 5],
+    'RUN': [Running, 3],
+    'WLK': [SportsWalking, 4]
+}
+KEY_ERROR_MESSAGE = (
+    'Введёно не корректное имя класса: "{}". '
+    'Корректные имена "SWM", "RUN", "WLK"'
+)
+TYPE_ERROR_MESSAGE = (
+    'Длинна аргументов класса "{}" не соотвествует необходимой длине. '
+    'У вас {}. А надо {}.'
+)
 
 
 def read_package(workout_type: str, data: list) -> Training:
     """Прочитать данные полученные от датчиков."""
-    if workout_type not in TRAININGS.keys():
-        raise KeyError('Неопознаный вид тренировки')
-    else:
-        if len(data) != (len(fields(TRAININGS[workout_type]))):
-            raise LookupError('Некорректная длинна данных для класса')
-        else:
-            return (TRAININGS[workout_type])(*data)
+    try:
+        if workout_type not in TRAININGS:
+            raise KeyError
+    except KeyError:
+        print(KEY_ERROR_MESSAGE.format(workout_type))
+        exit(0)
+    try:
+        if len(data) != TRAININGS[workout_type][1]:
+            raise TypeError
+    except TypeError:
+        print(TYPE_ERROR_MESSAGE.format(workout_type,
+                                        len(data),
+                                        TRAININGS[workout_type][1])
+              )
+        exit(0)
+    return TRAININGS[workout_type][0](*data)
 
 
 def main(training: Training) -> None:
